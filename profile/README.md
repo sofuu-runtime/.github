@@ -1,5 +1,3 @@
-# Sofuu — Detailed Project Description
-
 ## Overview
 
 Sofuu is an early-stage, bootstrapped, open-core project founded and built by **Priyanshu Boruah**, who publishes and develops the project under the public identity **Haruhito**.
