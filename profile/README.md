@@ -132,7 +132,7 @@ Sofuu compiles into a static standalone binary across:
 
 One-line installation:
 ```bash
-curl -fsSL https://sofuu.org/install | sh
+curl -fsSL https://sofuu.xyz/install | sh
 ```
 
 ---
@@ -150,9 +150,8 @@ Future commercial layers (managed cloud deployments, hosted collaborative agent 
 ## Project Identity & Links
 
 * **Founder & Lead Developer**: **Haruhito**
-* **Website**: [https://sofuu.org](https://sofuu.org) / [https://sofuu.xyz](https://sofuu.xyz)
+* **Website**: [https://sofuu.xyz](https://sofuu.xyz)
 * **Source Repository**: [https://github.com/sofuu-runtime/sofuu](https://github.com/sofuu-runtime/sofuu)
-* **Landing Page**: [https://github.com/sofuu-runtime/landing-page](https://github.com/sofuu-runtime/landing-page)
 
 ---
 
