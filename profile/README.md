@@ -1,204 +1,86 @@
-# Sofuu (素風) — Architecture & Project Overview
+<p align="center">
+  <img src="https://sofuu.xyz/docs/sofuu-logo.png" width="118" alt="Sofuu Logo">
+</p>
 
-## Overview
-
-Sofuu is an early-stage, bootstrapped, open-core project founded and built by **Haruhito**.
-
-Sofuu is an ultra-lightweight, AI-native **JavaScript/TypeScript runtime** designed to make building, running, and deploying AI applications simpler, faster, and self-contained. 
-
-Instead of requiring developers to assemble and maintain a bloated constellation of separate packages and background daemons—a JavaScript runtime (Node.js/Bun), AI SDKs (LangChain), agent frameworks, background inference daemons (Ollama/vLLM), vector databases (Chroma/Pinecone), MCP clients, and HTTP web servers—Sofuu brings every layer together inside a **single, standalone < 5 MB binary (4.0 MB stripped release)**.
-
-The goal is to make local, edge, and cloud AI development feel like running a single native executable with zero external dependencies and zero setup.
-
----
-
-## What Sofuu Provides
-
-Sofuu executes JavaScript and TypeScript while providing first-class AI primitives directly at the runtime layer:
-
-* **In-Process Local LLM Inference**: Native execution of GGUF (v2/v3), SafeTensors, PyTorch (`.pt`/`.pth`), and NumPy checkpoints directly on CPU (NEON/AVX2) and Apple Metal with zero daemons and zero Python.
-* **Continuous Memory Architecture (CMA)**: Persistent, on-device encrypted semantic vector memory that automatically manages episodic recall, decay, and reinforcement without external vector databases.
-* **Autonomous Agents & Tool Loops**: Built-in agent execution loops with multi-step reasoning, self-reflection, planning, and recursive execution.
-* **Native Model Context Protocol (MCP)**: First-class MCP client and server support to connect models directly to external tools, databases, and APIs without extra libraries.
-* **High-Throughput Streaming & Completion APIs**: Low-latency token generation with asynchronous backpressure handling.
-* **SIMD Vector Mathematics**: Microsecond vector operations (cosine similarity, dot product, L2 distance) powered by hand-tuned NEON and AVX2 kernels.
-* **Offline Hash & Semantic Embeddings**: Instant zero-network 768-dim hash embeddings and local semantic vector spaces.
-* **Built-in Async HTTP Server**: Expose streaming AI endpoints directly over HTTP from the same process without Express or external frameworks.
-* **Interactive AI Terminal CLI (`sofuu chat`)**: Immediate interactive assistant with persistent memory, zero coding required for end users.
-* **Developer Tooling**: Built-in runner, bundler, and evaluator for modern JS/TS scripts (`sofuu run app.ts`).
-* **Ultra-Small Standalone Footprint**: Single binary strictly under 5 MB (`4.0 MB stripped release`) with `< 4 ms` cold startup.
-
----
-
-## Runtime Architecture
-
-Sofuu is engineered as a hybrid high-performance runtime:
-* **JavaScript Engine**: Embedded **QuickJS** providing lightweight, sandboxed ES2023+ execution with instant cold starts and minimal RAM overhead.
-* **Async Event Loop**: **libuv** driving cross-platform asynchronous I/O, timers, networking, and filesystem operations.
-* **Engine Shell & Core**: Written in **Rust** (`crates/sofuu-core`, `sofuu-capi`, `sofuu-ffi`) for memory safety, concurrency, encrypted memory subsystems, and CLI tooling.
-* **SIMD & Metal Kernels**: Hand-tuned **C++ / ARM NEON / x86_64 AVX2** and **Apple Metal Shaders** (`src/simd/infer_kernels.cpp`, `src/metal/infer_metal.metal`) executing tensor operations at hardware saturation.
-
-### Key Architectural Pillars:
-* **Strict Binary Budget**: Shipped in a **4.0 MB stripped binary** (strictly $< 5.0\text{ MB}$ ceiling).
-* **Instant Startup**: Launches in **$< 4\text{ ms}$**; zero-copy mmap tensor loading initializes multi-gigabyte models in **$17–38\text{ ms}$**.
-* **Zero Daemons, Zero IPC**: Eliminates HTTP localhost overhead and background process crashes—the runtime process *is* the inference and memory engine.
-* **Local-First & Private**: All data, vector indexes, sessions, and memory are stored in local AES-256-GCM encrypted brain segments.
-
----
-
-## In-Process Local Inference Engine
-
-Sofuu features an embedded inference engine capable of loading and executing foundation models on local hardware without Python, PyTorch, CUDA toolkits, or Ollama:
-
-* **Universal Formats**: Ingests **GGUF** (v2/v3), **SafeTensors**, **PyTorch checkpoints**, and **NumPy arrays** with zero format conversion.
-* **Dynamic Block Graph**: Dynamically routes and executes any transformer or hybrid architecture (LLaMA, Qwen 2.5/3, Mistral, SmolLM, Gemma 1/2, Phi-3/4, Liquid LFM-2, and ternary quantized models).
-* **Hardware Acceleration**:
-  * **Apple Silicon**: Zero-copy Metal Performance Shaders (MPS) unified memory execution.
-  * **ARM NEON**: Cache-line aligned 8-wide float vectorization and specialized Raspberry Pi 5 nibble-plane optimizations.
-  * **x86_64 AVX2 / FMA**: 8-wide FMA matrix kernels with cache-friendly tiled layouts.
-* **Advanced Bandwidth & Latency Optimizations**:
-  * Non-temporal streaming weights (cache-bypass streaming for large weight matrices).
-  * Multi-path lookahead tree speculation.
-  * Sliding Window Attention (SWA) with attention sink preservation.
-
----
-
-## Continuous Memory Architecture (CMA)
-
-Sofuu includes an integrated vector memory system called the **Brain**:
-* **Encrypted On-Disk Storage**: Session logs, associative facts, and vector embeddings are stored in segment files encrypted with AES-256-GCM.
-* **Dual-Tier Associative Retrieval**: Combines fast 768-dimensional hash embeddings for instant keyword/syntactic lookup with 64-dimensional semantic embedding spaces for conceptual recall.
-* **Self-Pruning & Reinforcement**: Built-in exponential decay, reinforcement on positive user feedback, and semantic diversity floors to prevent memory drift.
-* **Zero External Dependencies**: Eliminates the need for external vector databases (Pinecone, Chroma, Milvus, or sqlite-vss).
-
----
-
-## Built-In Agent Tooling & MCP
-
-Sofuu makes agentic workflows a native primitive:
-* **Core Agent Tool Belt**: Native tools available directly to agents (`read`, `write`, `edit`, `grep`, `glob`, `list_dir`, `bash`, web search, and persistent brain recall).
-* **Model Context Protocol (MCP)**: Native client and server capabilities. Agents can connect to MCP servers over stdio or HTTP SSE to orchestrate local tools, enterprise systems, and remote services with zero external SDKs.
-
----
-
-## Developer Experience & Scripting
-
-### 1. Zero-Code Terminal Assistant
-Users who do not write JavaScript can use Sofuu directly out of the box:
-```bash
-sofuu chat
-```
-Launches an interactive terminal chat with local models, persistent memory, and agent capabilities.
-
-### 2. Native AI Scripting (JavaScript / TypeScript)
-Developers can build custom AI pipelines and agents with clean runtime APIs:
-
-```ts
-// In-process local inference
-import { ai, memory, agent } from "sofuu";
-
-// Stream tokens from a local GGUF model
-for await (const token of ai.stream("Explain KV-cache optimization", { model: "./model.gguf" })) {
-  process.stdout.write(token);
-}
-
-// Store in encrypted persistent memory
-await memory.remember("User prefers concise SIMD explanations", { tags: ["preferences"] });
-
-// Run an autonomous agent with native tools
-const result = await agent.run("Audit the src/ directory for memory leaks and generate a report");
-```
-
-### 3. Built-In Async HTTP Server
-Serve AI streaming APIs directly without Express or Fastify:
-```ts
-import { serve, ai } from "sofuu";
-
-serve({ port: 3000 }, async (req) => {
-  const { prompt } = await req.json();
-  return ai.stream(prompt, { model: "./model.gguf" });
-});
-```
-
----
-
-## Cross-Platform & Edge Support
-
-Sofuu compiles into a static standalone binary across:
-* **macOS** (Apple Silicon M-series & Intel)
-* **Linux** (x86_64, aarch64, Raspberry Pi 5)
-* **Windows** (x86_64)
-* **Edge & Embedded Targets**: C-API (`sofuu-capi`) and Swift/Kotlin bindings for direct integration into iOS and Android applications.
-
-One-line installation:
-```bash
-curl -fsSL https://sofuu.xyz/install | sh
-```
-
----
-
-## Open-Core Model
-
-Sofuu is licensed under the **MIT License**.
-
-The runtime, inference kernels, agent loops, memory subsystems, and developer CLI are open source and developed publicly. 
-
-Future commercial layers (managed cloud deployments, hosted collaborative agent fleets, enterprise authentication, and centralized telemetry for private clusters) will build on top of the open-source core without restricting the standalone runtime.
-
----
-
-## Project Identity & Links
-
-* **Founder & Lead Developer**: **Haruhito**
-* **Website**: [https://sofuu.xyz](https://sofuu.xyz)
-* **Source Repository**: [https://github.com/sofuu-runtime/sofuu](https://github.com/sofuu-runtime/sofuu)
-
----
-
-## Short GitHub Organization Description
-
-> Sofuu is an open-core, AI-native JavaScript/TypeScript runtime built by Haruhito. In-process local LLM inference, encrypted memory (CMA), autonomous agents, native MCP, and HTTP serving in a single < 5 MB binary (4.0 MB stripped). Zero daemons, zero Python.
-
----
-
-## Recommended GitHub Organization README (`.github/profile/README.md`)
-
-```markdown
 # Sofuu (素風)
 
-The AI-native JavaScript runtime. In-process local LLM inference, encrypted persistent memory, autonomous agents, and native MCP in a single **< 5 MB binary (4.0 MB stripped)**.
+> **A general-purpose runtime for AI — built to run anywhere from servers to smart devices.**
 
-Zero background daemons. Zero Python dependencies. Zero external vector databases.
+A sovereign, ultra-compact systems engine combining in-process/plugin local LLM inference, autonomous agent loops, encrypted cognitive vector memory (CMA v2 / QTSQ), native MCP, and physical robotics/drone control in a single **$\le 5.5\text{ MiB}$ standalone native binary**.
+
+Zero background daemons. Zero Python environments. Zero external vector databases.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-0.3.0--beta.2-orange.svg)](https://github.com/sofuu-runtime/sofuu/releases)
+[![Binary Size](https://img.shields.io/badge/binary-%E2%89%A4%205.5%20MB-emerald.svg)](https://sofuu.xyz)
+[![Cold Start](https://img.shields.io/badge/cold%20start-22.5%20ms-blue.svg)](BENCHMARKS.md)
+
+---
+
+### Quick Install
 
 ```bash
-curl -fsSL https://sofuu.org/install | sh
+# One-line install (Linux & macOS)
+curl -fsSL https://sofuu.xyz/install | sh
 
-# 1. Interactive terminal chat with local models & memory (zero code needed)
+# Or run via npm
+npx sofuu
+```
+
+---
+
+### Highlights
+
+- **Single $\le 5.5\text{ MiB}$ Native Binary**: Shipped as an ultra-compact executable with a 22.5 ms median cold start (4.85 ms on Raspberry Pi 5) and ~12.4 MB idle RSS.
+- **Two-Tier Language Substrate**: High-level AI cognition and orchestration in TypeScript/JavaScript (QuickJS + libuv) paired with **Kaze (風)** — a deterministic, fuel-metered domain DSL for physical devices and robotics.
+- **Cognitive Vector Memory (CMA v2)**: On-device encrypted (`.qtsq`, AES-256-GCM) associative memory with HNSW graph indexing, BM25 rare-token re-ranking, and offline 768-dim 0-byte embeddings.
+- **Dual-Track Local Inference**: Built-in multi-format engine (GGUF, SafeTensors, PyTorch, NumPy) plus turnkey production acceleration via `sofuu plugin add llamacpp`.
+- **Autonomous Agents & Prompt Sovereignty**: Multi-step reasoning loops with budget controls, crash-resilient WAL, and 100% developer prompt sovereignty.
+- **Robotics, Drones & MAVLink v2**: Zero-dependency MAVLink streaming codec, 1 Hz dead-man switch, Linux GPIO pulse timers, and an R7 deterministic safety veto gate.
+- **Native MCP Client & Server**: Direct Model Context Protocol over stdio and Streamable HTTP.
+- **Standalone Agent Compiler**: `sofuu compile app.ts -o agent` packages TypeScript code and vector memory into a single signed binary.
+- **Embeddable C ABI (`libsofuu`)**: Zero-JIT architecture providing native Swift (iOS/macOS) and Kotlin (Android) integration.
+
+---
+
+### 10-Second Quick Start
+
+```bash
+# 1. Immediate terminal assistant with persistent memory
 sofuu chat
 
-# 2. Run an AI script or agent
-sofuu run app.ts
+# 2. Run a TypeScript script natively (zero build step)
+sofuu run agent.ts
+
+# 3. Add production-grade local inference acceleration
+sofuu plugin add llamacpp
 ```
 
-## Highlights
+```ts
+// agent.ts — native AI in TypeScript
+import { ai, memory, agent } from "sofuu";
 
-- **Single `< 5 MB` Binary**: Shipped as a 4.0 MB stripped executable with `< 4 ms` cold startup.
-- **In-Process Inference Engine**: Runs GGUF, SafeTensors, PyTorch, and NumPy checkpoints natively on CPU (NEON/AVX2) and Apple Metal with zero daemons.
-- **Continuous Memory Architecture (CMA)**: Encrypted on-device semantic and episodic associative memory.
-- **Native MCP Client & Server**: Direct Model Context Protocol tool calling without third-party frameworks.
-- **Built-in Agent Belt**: Reasoning loops, reflection, and file/terminal tools out of the box.
-- **Integrated HTTP Server**: Stream LLM tokens and serve agent endpoints directly from JS.
-- **Cross-Platform**: macOS, Linux, Windows, Raspberry Pi 5, iOS & Android native bindings.
+const brain = memory.open("./brain.qtsq", 768);
+brain.remember(ai.embedLocal("runtime config"), "Sofuu executes AI natively with zero daemons.");
 
-## Architecture
-
-Sofuu combines:
-- **QuickJS** for ultra-lightweight, sandboxed JavaScript execution.
-- **libuv** for cross-platform asynchronous I/O and networking.
-- **Rust** for memory safety, encrypted brain subsystems, and engine orchestration.
-- **Hand-tuned C++ SIMD & Apple Metal kernels** for bare-metal tensor execution.
-
-## License
-
-Sofuu core is open source under the [MIT License](LICENSE). Built in public by **Haruhito**.
+const [match] = brain.recall(ai.embedLocal("daemons"), 1);
+console.log("Recalled from vector brain:", match.text);
 ```
+
+---
+
+### Architecture
+
+- **Engine Core:** Safe Rust (`crates/sofuu-core`) with isolated C FFI bridges (`crates/sofuu-ffi`).
+- **JavaScript Engine:** Embedded QuickJS (ES2023, JIT-free) + libuv async event loop.
+- **Physical VM:** Clean-room 4-byte bytecode VM for the Kaze scripting language (`crates/sofuu-core/src/sfs/`).
+- **SIMD & Metal:** Hand-tuned ARM NEON, AVX2, and Apple Metal Performance Shaders.
+- **Security:** Deterministic R7 firewall covering tools, filesystem jail, network allowlist, secrets masking, and hardware actuation vetoes.
+
+---
+
+### License
+
+- Core Runtime: [MIT License](LICENSE)
+- QTSQ Vector Memory Engine: [Apache-2.0 License](LICENSES/QTSQ-FORMAT.txt)
+- Built in public by **Haruhito**.
