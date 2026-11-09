@@ -6,7 +6,7 @@
 
 > **A general-purpose runtime for AI — built to run anywhere from servers to smart devices.**
 
-A sovereign, ultra-compact systems engine combining in-process/plugin local LLM inference, autonomous agent loops, encrypted cognitive vector memory (CMA v2 / QTSQ), native MCP, and physical robotics/drone control in a single **$\le 5.5\text{ MiB}$ standalone native binary**.
+A sovereign, ultra-compact systems engine combining in-process/plugin local LLM inference, autonomous agent loops, encrypted cognitive vector memory (CMA v2 / QTSQ), native MCP, and physical robotics/drone control in a single **$\le 10\text{ MiB}$ standalone native binary**.
 
 Zero background daemons. Zero Python environments. Zero external vector databases.
 
@@ -31,7 +31,7 @@ npx sofuu
 
 ### Highlights
 
-- **Single $\le 5.5\text{ MiB}$ Native Binary**: Shipped as an ultra-compact executable with a 22.5 ms median cold start (4.85 ms on Raspberry Pi 5) and ~12.4 MB idle RSS.
+- **Single $\le 10\text{ MiB}$ Native Binary**: Shipped as an ultra-compact executable with a 22.5 ms median cold start (4.85 ms on Raspberry Pi 5) and ~12.4 MB idle RSS.
 - **Two-Tier Language Substrate**: High-level AI cognition and orchestration in TypeScript/JavaScript (QuickJS + libuv) paired with **Kaze (風)** — a deterministic, fuel-metered domain DSL for physical devices and robotics.
 - **Cognitive Vector Memory (CMA v2)**: On-device encrypted (`.qtsq`, AES-256-GCM) associative memory with HNSW graph indexing, BM25 rare-token re-ranking, and offline 768-dim 0-byte embeddings.
 - **Dual-Track Local Inference**: Built-in multi-format engine (GGUF, SafeTensors, PyTorch, NumPy) plus turnkey production acceleration via `sofuu plugin add llamacpp`.
